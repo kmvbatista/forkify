@@ -26,7 +26,6 @@ export default class Recipe{
 
     calcTime() {
         //assuming that we have 15 minutes for each 3 ingredients
-        console.log(this.ingredients);
         const numIng= this.ingredients.length;
         const periods= Math.ceil(numIng/3);
         this.time= periods*15;  
@@ -96,6 +95,17 @@ export default class Recipe{
         catch(error) {
             alert(`erro nas conversões: ${error.message}`)
         }
-            
+    }
+    updateServings(type) {
+        let newServings;
+        //servings 
+        //ingredientes
+        type==='dec' ? newServings= this.count-1 : newServings=this.count+1;
+
+        this.servings= newServings;
+        this.ingredients.forEach(ing => {
+            ing.count= ing.count*(newServings/this.servings)
+        })
+        this.servings= newServings;
     }
 }

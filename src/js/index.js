@@ -3,6 +3,8 @@ import Recipe from './models/Recipe';
 import {elements, renderLoader, clearLoader} from './views/base';
 import * as searchView from './views/searchView';//it'll be an object in wich all the exported variables from searchview file will be stored
 import * as recipeView from './views/recipeView';
+import List from './models/ListRecipes';
+import * as listView from './views/listView';
 
 /*
     global state of the app
@@ -79,12 +81,55 @@ elements.searchResPages.addEventListener('click', e => {
             catch(error) {
                 console.log('processing error')
             }
-                
         }
-
     };
 
 ['hashchange', 'load'].forEach(event =>{
     window.addEventListener(event, controlRecipe);
 });
 
+//handling recipe button clicks
+
+elements.recipe.addEventListener('click', e=> {
+    if(e.target.matches('btn-decrease, btn-decrease *')) {
+        state.recipe.updateServings('des');
+        recipeView.updateServingsIngredients(state.recipe);
+    }
+    else if( e.target.matches('btn-increase, btn-increase *')) {
+        state.recipe.updateServings('inc');
+        recipeView.updateServingsIngredients(state.recipe);
+    }
+    else if( e.target.matches('.recipe__btn-add, .recipe__btn-add *')) {
+        controlList();
+    }
+    
+});
+
+
+const controlList= () => {
+    //create a new list if there is none yet
+    if(!state.list) {
+        state.list= new List();
+    }
+    state.recipe.ingredients.forEach(el => {
+        const item=state.list.addItem(el.unit, el.ingredient, el.count);
+        listView.renderList(item);
+    });
+}
+
+//handle delete and update shopping list items
+elements.shopping.addEventListener('click', e => {
+    const idElement= e.target.closest('.shopping__item').dataset.itemid;
+    
+    if(e.target.matches('.shopping__delete, .shopping__delete *')){
+        //delete from state
+        state.list.deleteItem(idElement);
+        //delete from UI
+        listView.deleteItem(idElement);
+    }
+    else if(e.target.matches('.shopping__count-value')){
+        const value=parseFloat(e.target.value);
+        state.list.updateCount(idElement, value);
+
+    }
+})
