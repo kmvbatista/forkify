@@ -5,6 +5,8 @@ import * as searchView from './views/searchView';//it'll be an object in wich al
 import * as recipeView from './views/recipeView';
 import List from './models/ListRecipes';
 import * as listView from './views/listView';
+import Likes from './models/Likes';
+import { toggleLikeBtn, renderLikeList, toggleLikeList, deleteLikeList } from './views/likesView';
 
 /*
     global state of the app
@@ -14,7 +16,19 @@ import * as listView from './views/listView';
     liked recipes
 */
 
+
 const state= {};
+window.addEventListener('load', () => {
+    state.likes= new Likes();
+
+    state.likes.readLocalStorage();
+
+    toggleLikeList(state.likes.getNumlikes());
+
+    state.likes.likes.forEach(like => renderLikeList(like));
+
+    
+});
 
 const controlSearch= async ()=> {
     //get query from view
@@ -53,40 +67,32 @@ elements.searchResPages.addEventListener('click', e => {
     }
 });
  
-     const controlRecipe= async ()=> {
+const controlRecipe= async ()=> {
 
     //get the id from url
     const id = window.location.hash.replace('#','');
+
+    if(id) {
+    //PREPARE THE UI FOR CHANGES
+    renderLoader(elements.recipe);
+    //CREATE NEW RECIPE OBJECT
+    state.recipe= new Recipe(id); 
+        //GET RECIPE DATA
+    await state.recipe.getRecipe(); 
+    state.recipe.parseIngredients();
     
-        if(id) {
-            //PREPARE THE UI FOR CHANGES
-            renderLoader(elements.recipe);
-            //CREATE NEW RECIPE OBJECT
-            state.recipe= new Recipe(id); 
-            try {
+    //CALL SERVINGS AND TIME 
+    state.recipe.calcTime();
+    state.recipe.calcServing();
+    //RENDER RECIPE
+    recipeView.clearRecipe();
+    recipeView.renderRecipe(state.recipe, state.likes.isLiked(id));
+    clearLoader();
+    
+    }
+};
 
-            //GET RECIPE DATA
-            await state.recipe.getRecipe();
-            console.log(`state.recipe é igual a: ${state.recipe}`)
-            state.recipe.parseIngredients();
-            
-            //CALL SERVINGS AND TIME 
-            state.recipe.calcTime();
-            state.recipe.calcServing();
-            //RENDER RECIPE
-            recipeView.clearRecipe();
-            recipeView.renderRecipe(state.recipe);
-            clearLoader();
-            }
-            catch(error) {
-                console.log('processing error')
-            }
-        }
-    };
 
-['hashchange', 'load'].forEach(event =>{
-    window.addEventListener(event, controlRecipe);
-});
 
 //handling recipe button clicks
 
@@ -102,8 +108,38 @@ elements.recipe.addEventListener('click', e=> {
     else if( e.target.matches('.recipe__btn-add, .recipe__btn-add *')) {
         controlList();
     }
+
+    else if( e.target.matches('.recipe__love, .recipe__love *')){
+        controlLikes();
+    }
     
 });
+
+
+const controlLikes= () => {
+    
+    const currentId= state.recipe.id;
+    if(!state.likes.isLiked(currentId)){
+        //add like to the state
+        const newLike=state.likes.addLike(state.recipe.id, state.recipe.title, state.recipe.author, state.recipe.img);
+        //toggle like icon
+        toggleLikeBtn(true);
+        //add like from the list
+        renderLikeList(newLike);
+        
+        }
+    else {
+        //remove like from the state
+        state.likes.deleteLike(currentId);
+        //toggle like icon
+        toggleLikeBtn(false);
+        //remove like to the list
+        deleteLikeList(currentId);
+        
+    }
+    toggleLikeList(state.likes.getNumlikes());
+    
+}
 
 
 const controlList= () => {
@@ -130,6 +166,10 @@ elements.shopping.addEventListener('click', e => {
     else if(e.target.matches('.shopping__count-value')){
         const value=parseFloat(e.target.value);
         state.list.updateCount(idElement, value);
-
     }
-})
+});
+
+
+['hashchange', 'load'].forEach(event =>{
+    window.addEventListener(event, controlRecipe);
+});
